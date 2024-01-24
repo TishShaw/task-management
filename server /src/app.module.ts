@@ -3,6 +3,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ConfigModule } from '@nestjs/config';
+import { TodoModule } from './todo/todo.module';
+import { TaskEntity } from './todo/task.entity';
 
 @Module({
   imports: [
@@ -14,9 +16,11 @@ import { ConfigModule } from '@nestjs/config';
       username: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-      entities: [],
+      entities: [TaskEntity],
       synchronize: true,
     }),
+      TodoModule,
+      TypeOrmModule.forFeature([TaskEntity]),
   ],
   controllers: [AppController],
   providers: [AppService],

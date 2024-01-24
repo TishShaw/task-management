@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Flex, Text, Button, useToast, Input } from '@chakra-ui/react';
+import axios from 'axios';
+
+interface TaskEntity {
+	id: number;
+	description: string;
+}
 
 function App() {
-	const toast = useToast();
 	const [newTask, setNewTask] = useState('');
-	const [tasks, setTasks] = useState<string[]>([]);
+	const [tasks, setTasks] = useState<TaskEntity[]>([]);
 	const [editIndex, setEditIndex] = useState<number | null>(null);
 
-	const addTask = (e: React.FormEvent) => {
+	const addTask = async (e: React.FormEvent) => {
 		e.preventDefault();
 
 		if (newTask.length < 1) {
@@ -15,29 +20,61 @@ function App() {
 		}
 
 		if (editIndex !== null) {
-			const updatedTasks = [...tasks];
-			updatedTasks[editIndex] = newTask;
-			setTasks(updatedTasks);
-			setNewTask('');
-			setEditIndex(null);
+			try {
+				const updatedTask: TaskEntity = {
+					id: tasks[editIndex].id,
+					description: newTask,
+				};
+
+				await axios.put(
+					`http://localhost:3000/api/tasks/${tasks[editIndex].id}`,
+					updatedTask
+				);
+
+				const updatedTasks = [...tasks];
+				updatedTasks[editIndex] = updatedTask;
+				setTasks(updatedTasks);
+				setNewTask('');
+				setEditIndex(null);
+			} catch (error) {
+				console.error('Error updating task:', error);
+			}
 		} else {
-			setTasks((prevState: string[]) => [...prevState, newTask]);
-			setNewTask('');
+			try {
+				const res = await axios.post('http://localhost:3000/api/tasks', {
+					description: newTask,
+				});
+				setTasks((prevState: TaskEntity[]) => [...prevState, res.data]);
+				setNewTask('');
+			} catch (error) {
+				console.error('Error adding task:', error);
+			}
 		}
 	};
 
 	const updateTask = (index: number) => {
-		setNewTask(tasks[index]);
+		setNewTask(tasks[index].description);
 		setEditIndex(index);
 	};
 
-	const removeTask = (index: number) => {
-		const newTasks = [...tasks];
-		newTasks.splice(index, 1);
-		setTasks(newTasks);
+	const removeTask = async (index: number) => {
+		try {
+			await axios.delete(`http://localhost:3000/api/tasks/${tasks[index].id}`);
+			const newTasks = [...tasks];
+			newTasks.splice(index, 1);
+			setTasks(newTasks);
+		} catch (error) {
+			console.error('Error deleting task:', error);
+		}
 	};
 
 	console.log(tasks);
+
+	useEffect(() => {
+		axios.get('http://localhost:3000/api/tasks').then((res) => {
+			setTasks(res.data);
+		});
+	}, []);
 
 	return (
 		<Flex
@@ -71,7 +108,7 @@ function App() {
 			{tasks.map((task, index) => (
 				<div key={index}>
 					<Flex mt='10px'>
-						{task}{' '}
+						<span>{task.description}</span>
 						<span
 							onClick={() => removeTask(index)}
 							style={{
